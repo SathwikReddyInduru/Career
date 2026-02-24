@@ -1,7 +1,7 @@
 import { Database, Eraser, History, LayoutGrid, List, LogOut, RotateCcw, RotateCw, Save, SaveAll, Trash2, X, Zap } from 'lucide-react'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { logout } from '../../../auth/store/authSlice'
+// import { logout } from '../../../auth/store/authSlice'
 import { saveVersionApi, getVersionsApi, loadVersionApi } from "../../services/versionService"
 import { addNode, clearCanvas, deleteSelected, loadFlowState, redo, undo } from '../../store/flowSlice'
 import styles from './LeftSidebar.module.css'
@@ -163,9 +163,9 @@ const LeftSidebar = () => {
                 </div>
             )}
 
-            <button className={styles.logout} onClick={() => dispatch(logout())}>
+            {/* <button className={styles.logout} onClick={() => dispatch(logout())}>
                 <LogOut size={16} /> Logout
-            </button>
+            </button> */}
         </div>
     )
 }

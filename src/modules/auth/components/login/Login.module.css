@@ -2,10 +2,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background: linear-gradient(135deg,
-            #234a72 0%,
-            #3373af 50%,
-            #7fb8f5 100%);
+    background: linear-gradient(135deg, #0a1f2e 0%, #143850 45%, #1e506b 100%);
 }
 
 .loginNavbar {
