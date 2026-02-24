@@ -170,42 +170,4 @@ const LeftSidebar = () => {
     )
 }
 
-// Handle Save & Handle Load
-// const handleSaveVersion = async () => {
-//     const versionName = window.prompt("Enter version name:");
-//     if (!versionName?.trim()) return;
-
-//     try {
-//         await saveVersionApi({
-//             version: versionName,
-//             nodes: flow.nodes,
-//             edges: flow.edges,
-//             nodeConfigs: flow.nodeConfigs,
-//         });
-
-//         alert("Version saved successfully");
-//     } catch (error) {
-//         console.error(error);
-//     }
-// };
-
-// const handleSyncVersion = async () => {
-//     try {
-//         const { data: versions } = await getVersionsApi();
-
-//         const selected = window.prompt(
-//             `Available Versions:\n${versions.join("\n")}\n\nEnter version name:`
-//         );
-
-//         if (!selected) return;
-
-//         const { data } = await loadVersionApi(selected);
-
-//         dispatch(loadFlowState(data));
-
-//     } catch (error) {
-//         console.error(error);
-//     }
-// };
-
 export default LeftSidebar
