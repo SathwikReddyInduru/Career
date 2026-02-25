@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { saveToHistory, setEdges, updateNodeData } from '../../store/flowSlice'
 import styles from './RightSidebar.module.css'
 import { publishApi } from '../../services/versionService'
+import MobileSimulator from '../mobileSimulator/MobileSimulator'
 
 const RightSidebar = () => {
     const dispatch = useDispatch()
@@ -15,6 +16,7 @@ const RightSidebar = () => {
     const currentEdge = edges.find(e => e.id === selectedEdge)
 
     const [localLabel, setLocalLabel] = useState(currentEdge?.label || '')
+    const [testOpen, setTestOpen] = useState(false)
 
     useEffect(() => {
         setLocalLabel(currentEdge?.label || '')
@@ -183,11 +185,30 @@ const RightSidebar = () => {
                     </div>
                 </div>
 
+                <button onClick={() => setTestOpen(true)} className={styles.testBtn}>
+                    📱 Test Flow
+                </button>
+
                 {user.role === 'admin' && (
                     <button className={styles.publishBtn} onClick={handlePublish}>
                         <Save size={18} />
                         Publish & Sync
                     </button>
+                )}
+
+                {testOpen && (
+                    <div className={styles.modalOverlay} onClick={() => setTestOpen(false)}>
+                        <div
+                            className={styles.modalContent}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <MobileSimulator
+                                nodes={nodes}
+                                edges={edges}
+                                onClose={() => setTestOpen(false)}
+                            />
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
