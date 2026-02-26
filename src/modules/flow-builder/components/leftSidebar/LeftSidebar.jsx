@@ -1,9 +1,9 @@
 import { Database, Eraser, History, LayoutGrid, List, LogOut, RotateCcw, RotateCw, Save, SaveAll, Trash2, X, Zap } from 'lucide-react'
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-// import { logout } from '../../../auth/store/authSlice'
 import { saveVersionApi, getVersionsApi, loadVersionApi } from "../../services/versionService"
 import { addNode, clearCanvas, deleteSelected, loadFlowState, redo, undo } from '../../store/flowSlice'
+import { publishApi } from '../../services/versionService'
 import styles from './LeftSidebar.module.css'
 
 const LeftSidebar = () => {
@@ -11,6 +11,8 @@ const LeftSidebar = () => {
     const [versions, setVersions] = useState([])
 
     const dispatch = useDispatch()
+    const { user } = useSelector((state) => state.auth)
+    const { nodes, edges } = useSelector((state) => state.flow)
     const flow = useSelector((state) => state.flow)
     const selectedNode = useSelector((state) => state.flow.selectedNode)
     const selectedEdge = useSelector((state) => state.flow.selectedEdge)
@@ -18,11 +20,6 @@ const LeftSidebar = () => {
     const canRedo = useSelector((state) => state.flow.future.length > 0)
 
     const handleSaveVersion = async () => {
-        if (flow.nodes.length === 0) {
-            alert("❌ Cannot save an empty flow")
-            return
-        }
-
         const versionName = window.prompt("Enter version name:")
         if (!versionName?.trim()) return
 
@@ -64,7 +61,20 @@ const LeftSidebar = () => {
     const handleClearCanvas = () => {
         if (window.confirm('⚠️ Clear entire canvas? This action cannot be undone.')) {
             dispatch(clearCanvas())
-            alert('✅ Canvas cleared')
+            // alert('✅ Canvas cleared')
+        }
+    }
+
+    const handlePublish = async () => {
+        try {
+            const response = await publishApi(nodes, edges)
+
+            console.log("Publish response:", response.data.message)
+            alert(response.data.message)
+
+        } catch (error) {
+            console.error(error)
+            alert("❌ Failed to publish flow")
         }
     }
 
@@ -91,36 +101,63 @@ const LeftSidebar = () => {
                 </button>
             </div>
 
-            <button onClick={() => dispatch(addNode('shortcode'))}>
+            {user.role === 'admin' && (
+                <button
+                    className={styles.publishBtn}
+                    onClick={handlePublish}
+                    disabled={nodes.length === 0}>
+                    <Save size={18} />
+                    Publish & Sync
+                </button>
+            )}
+
+            <button
+                onClick={() => dispatch(addNode('shortcode'))}
+                disabled={user.role == 'admin'}>
                 <LayoutGrid size={16} /> New Short Code
             </button>
-            <button onClick={() => dispatch(addNode('submenu'))}>
+
+            <button
+                onClick={() => dispatch(addNode('submenu'))}
+                disabled={user.role == 'admin'}>
                 <List size={16} /> Add Sub-Menu
             </button>
-            <button onClick={() => dispatch(addNode('api'))}>
+
+            <button
+                onClick={() => dispatch(addNode('api'))}
+                disabled={user.role == 'admin'}>
                 <Database size={16} /> Add API Node
             </button>
 
             <hr />
 
-            <button onClick={handleSaveVersion}>
+            <button
+                onClick={handleSaveVersion}
+                disabled={user.role == 'admin' || nodes.length === 0}>
                 <Save size={16} /> Save Version
             </button>
+
             <button onClick={handleOpenModal}>
                 <History size={16} /> Sync Version...
             </button>
-            <button onClick={handleClearCanvas}>
+
+            <button
+                onClick={handleClearCanvas}
+                disabled={nodes.length === 0}>
                 <Eraser size={16} /> Clear Canvas
             </button>
 
-            {(selectedNode || selectedEdge) && (
-                <button
-                    className={styles.delete}
-                    onClick={() => dispatch(deleteSelected())}
-                    title="Delete (Delete key)"
-                >
-                    <Trash2 size={16} /> Delete Selected
-                </button>
+            {user.role !== 'admin' && (
+                (selectedNode || selectedEdge) && (
+                    <button
+                        className={styles.delete}
+                        onClick={() => dispatch(deleteSelected())}
+                        disabled={user.role == 'admin'}
+                        title="Delete (Delete key)"
+                    >
+                        <Trash2 size={16} /> Delete Selected
+                    </button>
+                )
             )}
 
             {/* Version Modal */}
@@ -162,10 +199,6 @@ const LeftSidebar = () => {
                     </div>
                 </div>
             )}
-
-            {/* <button className={styles.logout} onClick={() => dispatch(logout())}>
-                <LogOut size={16} /> Logout
-            </button> */}
         </div>
     )
 }

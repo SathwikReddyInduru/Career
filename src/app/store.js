@@ -5,7 +5,7 @@ import storage from 'redux-persist/lib/storage'
 import { combineReducers } from 'redux'
 import flowReducer from '../modules/flow-builder/store/flowSlice'
 
-const rootReducer = combineReducers({
+const appReducer = combineReducers({
     auth: authReducer,
     flow: flowReducer
 })
@@ -16,13 +16,26 @@ const persistConfig = {
     whitelist: ['auth']
 }
 
+const rootReducer = (state, action) => {
+    if (action.type === 'auth/logout') {
+        return {
+            auth: authReducer(state.auth, action),
+            flow: undefined
+        }
+    }
+
+    return appReducer(state, action)
+}
+
 const persistedReducer = persistReducer(persistConfig, rootReducer)
 
 export const store = configureStore({
     reducer: persistedReducer,
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
-            serializableCheck: false
+            serializableCheck: {
+                ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE']
+            }
         })
 })
 

@@ -1,10 +1,8 @@
-import { Power, PowerOff, Save, Smartphone } from 'lucide-react'
+import { Power, PowerOff, Smartphone } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { saveToHistory, setEdges, updateNodeData } from '../../store/flowSlice'
 import styles from './RightSidebar.module.css'
-import { publishApi } from '../../services/versionService'
-import MobileSimulator from '../mobileSimulator/MobileSimulator'
 
 const RightSidebar = () => {
     const dispatch = useDispatch()
@@ -16,15 +14,18 @@ const RightSidebar = () => {
     const currentEdge = edges.find(e => e.id === selectedEdge)
 
     const [localLabel, setLocalLabel] = useState(currentEdge?.label || '')
-    const [testOpen, setTestOpen] = useState(false)
+
+    const isAdmin = user?.role === 'admin'
 
     useEffect(() => {
         setLocalLabel(currentEdge?.label || '')
     }, [currentEdge?.id, currentEdge?.label])
 
-    // ── Edge editing ────────────────────────────────────────────────────
+    // ── Edge editing ──
     if (currentEdge) {
         const commitLabel = () => {
+            if (isAdmin) return
+
             if (localLabel && !/^[0-9*#]$/.test(localLabel)) {
                 alert("⚠️ Edge label should be a single digit (0-9), *, or #")
                 setLocalLabel(currentEdge.label || '')
@@ -47,12 +48,24 @@ const RightSidebar = () => {
                     <input
                         className={styles.input}
                         value={localLabel}
-                        onChange={(e) => setLocalLabel(e.target.value)}
+                        onChange={(e) => {
+                            if (isAdmin) return
+                            setLocalLabel(e.target.value)
+                        }}
                         onBlur={commitLabel}
                         placeholder="e.g. 1, 2, *, #"
                         maxLength={1}
+                        disabled={isAdmin}
+                        readOnly={isAdmin}
                     />
-                    <p className={styles.hint}>Enter a single digit (0-9), *, or #</p>
+                    {isAdmin && (
+                        <p className={styles.adminHint}>
+                            🔒 View-only mode (Admin)
+                        </p>
+                    )}
+                    {!isAdmin && (
+                        <p className={styles.hint}>Enter a single digit (0-9), *, or #</p>
+                    )}
                 </div>
             </div>
         )
@@ -74,6 +87,9 @@ const RightSidebar = () => {
     const data = currentNode.data || {}
 
     const updateField = (key, value) => {
+        // ✅ Prevent admin from editing
+        if (isAdmin) return
+
         dispatch(updateNodeData({
             nodeId: selectedNode,
             updates: { [key]: value }
@@ -81,20 +97,9 @@ const RightSidebar = () => {
     }
 
     const handleBlur = () => {
+        // ✅ Prevent admin from saving changes
+        if (isAdmin) return
         dispatch(saveToHistory())
-    }
-
-    const handlePublish = async () => {
-        try {
-            const response = await publishApi(nodes, edges)
-
-            console.log("Publish response:", response.data.message)
-            alert(response.data.message)
-
-        } catch (error) {
-            console.error(error)
-            alert("❌ Failed to publish flow")
-        }
     }
 
     return (
@@ -102,6 +107,7 @@ const RightSidebar = () => {
             <div className={styles.container}>
                 <h3 className={styles.heading}>
                     Configuration {data.label ? `(${data.label})` : '(Node)'}
+                    {isAdmin && <span className={styles.adminBadge}>🔒 View Only</span>}
                 </h3>
 
                 {data.isShortCode && (
@@ -113,16 +119,21 @@ const RightSidebar = () => {
                             onChange={(e) => updateField('label', e.target.value)}
                             onBlur={handleBlur}
                             placeholder="*123# or custom code"
+                            disabled={isAdmin} // ✅ Disable for admin
+                            readOnly={isAdmin} // ✅ Read-only for admin
                         />
                     </div>
                 )}
 
                 <button
                     onClick={() => {
+                        // ✅ Prevent admin from toggling
+                        if (isAdmin) return
                         updateField('enabled', !data.enabled)
                         dispatch(saveToHistory())
                     }}
                     className={`${styles.statusBtn} ${data.enabled ? styles.active : styles.offline}`}
+                    disabled={isAdmin} // ✅ Disable for admin
                 >
                     {data.enabled ? <Power size={16} /> : <PowerOff size={16} />}
                     {data.enabled ? 'ACTIVE' : 'OFFLINE'}
@@ -137,10 +148,13 @@ const RightSidebar = () => {
                             </span>
                             <button
                                 onClick={() => {
+                                    // ✅ Prevent admin from toggling
+                                    if (isAdmin) return
                                     updateField('isDynamicPlanNode', !data.isDynamicPlanNode)
                                     dispatch(saveToHistory())
                                 }}
                                 className={`${styles.toggleBtn} ${data.isDynamicPlanNode ? styles.toggleOn : styles.toggleOff}`}
+                                disabled={isAdmin} // ✅ Disable for admin
                             >
                                 {data.isDynamicPlanNode ? 'ON' : 'OFF'}
                             </button>
@@ -157,6 +171,8 @@ const RightSidebar = () => {
                         onBlur={handleBlur}
                         placeholder="Welcome message or instructions..."
                         rows={4}
+                        disabled={isAdmin} // ✅ Disable for admin
+                        readOnly={isAdmin} // ✅ Read-only for admin
                     />
                 </div>
 
@@ -169,6 +185,8 @@ const RightSidebar = () => {
                             onChange={(e) => updateField('apiUrl', e.target.value)}
                             onBlur={handleBlur}
                             placeholder="https://api.example.com/plans"
+                            disabled={isAdmin} // ✅ Disable for admin
+                            readOnly={isAdmin} // ✅ Read-only for admin
                         />
                     </div>
                 )}
@@ -184,27 +202,8 @@ const RightSidebar = () => {
                     </div>
                 </div>
 
-                <button onClick={() => setTestOpen(true)} className={styles.testBtn}>
-                    📱 Test Flow
-                </button>
-
-                {user.role === 'admin' && (
-                    <button className={styles.publishBtn} onClick={handlePublish}>
-                        <Save size={18} />
-                        Publish & Sync
-                    </button>
-                )}
-
-                {testOpen && (
-                    <div className={styles.modalOverlay} onClick={() => setTestOpen(false)}>
-                        <div
-                            className={styles.modalContent}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <MobileSimulator onClose={() => setTestOpen(false)} />
-                        </div>
-                    </div>
-                )}
+                {/* ✅ Admin cannot see any action buttons in RightSidebar */}
+                {/* All admin actions (Publish, Sync) are in LeftSidebar */}
             </div>
         </div>
     )
