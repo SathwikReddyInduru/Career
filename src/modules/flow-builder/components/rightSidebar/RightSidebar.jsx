@@ -21,6 +21,18 @@ const RightSidebar = () => {
         setLocalLabel(currentEdge?.label || '')
     }, [currentEdge?.id, currentEdge?.label])
 
+    const getEmptyMessage = () => {
+        if (isAdmin) {
+            return nodes.length === 0
+                ? "Sync the flow to View"
+                : "Select a Node to View its Properties";
+        }
+
+        return nodes.length === 0
+            ? "Add a Node to Start Building the Flow"
+            : "Select a node or connection to edit";
+    };
+
     // ── Edge editing ──
     if (currentEdge) {
         const commitLabel = () => {
@@ -71,13 +83,13 @@ const RightSidebar = () => {
         )
     }
 
-    // ── Node editing ────────────────────────────────────────────────────
+    // ── Node editing ──
     if (!currentNode) {
         return (
             <div className={styles.rightSidebar}>
                 <div className={styles.container}>
                     <div className={styles.empty}>
-                        Select a node or connection to edit
+                        <p>{getEmptyMessage()}</p>
                     </div>
                 </div>
             </div>

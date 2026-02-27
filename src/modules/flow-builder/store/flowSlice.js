@@ -16,7 +16,7 @@ const saveHistory = (state) => {
     })
     state.future = []
 
-    if (state.history.length > 50) {
+    if (state.history.length > 75) {
         state.history.shift()
     }
 }

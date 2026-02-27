@@ -1,25 +1,10 @@
+import { deleteSelected, redo, saveToHistory, setEdges, setNodes, setSelectedEdge, setSelectedNode, undo } from '../../store/flowSlice'
+import ReactFlow, { Background, Controls, addEdge, applyEdgeChanges, applyNodeChanges } from 'reactflow'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import ReactFlow, {
-    Background,
-    Controls,
-    addEdge,
-    applyEdgeChanges,
-    applyNodeChanges
-} from 'reactflow'
-import 'reactflow/dist/style.css'
-import {
-    deleteSelected,
-    redo,
-    saveToHistory,
-    setEdges,
-    setNodes,
-    setSelectedEdge,
-    setSelectedNode,
-    undo
-} from '../../store/flowSlice'
 import styles from './Canvas.module.css'
+import 'reactflow/dist/style.css'
 
 const Canvas = ({ toggleLeft, toggleRight, leftOpen, rightOpen, closeMenu }) => {
     const dispatch = useDispatch()
@@ -32,20 +17,26 @@ const Canvas = ({ toggleLeft, toggleRight, leftOpen, rightOpen, closeMenu }) => 
     const isDragging = useRef(false)
 
     const onNodesChange = useCallback((changes) => {
-        const dragStart = changes.some(c => c.type === 'position' && c.dragging === true)
-        const dragEnd = changes.some(c => c.type === 'position' && c.dragging === false)
+        const dragStart = changes.some(
+            c => c.type === 'position' && c.dragging === true
+        );
 
-        if (dragStart) {
-            isDragging.current = true
+        if (dragStart && !isDragging.current) {
+            isDragging.current = true;
+            dispatch(saveToHistory());
         }
 
-        dispatch(setNodes(applyNodeChanges(changes, nodes)))
+        const dragEnd = changes.some(
+            c => c.type === 'position' && c.dragging === false
+        );
 
-        if (dragEnd && isDragging.current) {
-            isDragging.current = false
-            dispatch(saveToHistory())
+        if (dragEnd) {
+            isDragging.current = false;
         }
-    }, [dispatch, nodes])
+
+        dispatch(setNodes(applyNodeChanges(changes, nodes)));
+
+    }, [dispatch, nodes]);
 
     const onEdgesChange = useCallback((changes) => {
         dispatch(setEdges(applyEdgeChanges(changes, edges)))
