@@ -1,5 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit'
 
+const DEFAULT_API_URL = 'http://localhost:6215/api/billing/v1/available-plans'
+
 const initialState = {
     nodes: [],
     edges: [],
@@ -28,7 +30,6 @@ const flowSlice = createSlice({
         addNode: {
             reducer: (state, action) => {
                 saveHistory(state)
-
                 const { node } = action.payload
                 state.nodes.push(node)
             },
@@ -79,9 +80,8 @@ const flowSlice = createSlice({
                                 isAPI,
                                 isDynamicPlanNode: false,
                                 isShortCode,
-                                apiUrl: isAPI
-                                    ? 'http://localhost:6215/api/billing/v1/available-plans'
-                                    : ''
+                                ...(isShortCode && { apiCalls: [''] }),
+                                ...(isAPI && { apiCalls: [DEFAULT_API_URL] }),
                             },
                             style: {
                                 background: nodeData.bgColor,

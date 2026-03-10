@@ -1,8 +1,10 @@
 import { saveToHistory, setEdges, updateNodeData } from '../../store/flowSlice'
-import { Power, PowerOff, Smartphone } from 'lucide-react'
+import { Plus, Power, PowerOff, Smartphone, Trash2 } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useEffect, useState } from 'react'
 import styles from './RightSidebar.module.css'
+
+const DEFAULT_API_URL = 'http://localhost:6215/api/billing/v1/available-plans'
 
 const RightSidebar = () => {
     const dispatch = useDispatch()
@@ -100,7 +102,6 @@ const RightSidebar = () => {
 
     const updateField = (key, value) => {
         if (isAdmin) return
-
         dispatch(updateNodeData({
             nodeId: selectedNode,
             updates: { [key]: value }
@@ -109,6 +110,27 @@ const RightSidebar = () => {
 
     const handleBlur = () => {
         if (isAdmin) return
+        dispatch(saveToHistory())
+    }
+
+    const apiCalls = data.apiCalls || []
+
+    const handleAddApiCall = () => {
+        const newEntry = data.isAPI ? DEFAULT_API_URL : ''
+        updateField('apiCalls', [...apiCalls, newEntry])
+        dispatch(saveToHistory())
+    }
+
+    const handleApiCallChange = (index, value) => {
+        updateField('apiCalls', apiCalls.map((url, i) => i === index ? value : url))
+    }
+
+    const handleApiCallBlur = () => {
+        dispatch(saveToHistory())
+    }
+
+    const handleRemoveApiCall = (index) => {
+        updateField('apiCalls', apiCalls.filter((_, i) => i !== index))
         dispatch(saveToHistory())
     }
 
@@ -186,23 +208,49 @@ const RightSidebar = () => {
 
                 {(data.isAPI || data.isShortCode) && (
                     <div className={styles.section}>
-                        <label className={styles.label}>
-                            API URL
-                            {data.isShortCode && <span className={styles.optional}> (Optional - for user data)</span>}
-                        </label>
-                        <input
-                            className={styles.input}
-                            value={data.apiUrl || ''}
-                            onChange={(e) => updateField('apiUrl', e.target.value)}
-                            onBlur={handleBlur}
-                            placeholder={
-                                data.isShortCode
-                                    ? "https://api.example.com/user-info"
-                                    : "https://api.example.com/plans"
-                            }
-                            disabled={isAdmin}
-                            readOnly={isAdmin}
-                        />
+
+                        <div className={styles.labelRow}>
+                            <label className={styles.label}>
+                                API URL
+                                {data.isShortCode && <span className={styles.optional}> (Optional)</span>}
+                            </label>
+                            {!isAdmin && (
+                                <button
+                                    className={styles.labelAddBtn}
+                                    onClick={handleAddApiCall}
+                                    title="Add another API URL"
+                                >
+                                    <Plus size={12} />
+                                </button>
+                            )}
+                        </div>
+
+                        {apiCalls.map((url, index) => (
+                            <div key={index} className={styles.apiCallRow}>
+                                <input
+                                    className={styles.input}
+                                    value={url}
+                                    onChange={(e) => handleApiCallChange(index, e.target.value)}
+                                    onBlur={handleApiCallBlur}
+                                    placeholder={
+                                        data.isShortCode
+                                            ? 'https://api.example.com/user-info'
+                                            : 'https://api.example.com/plans'
+                                    }
+                                    disabled={isAdmin}
+                                    readOnly={isAdmin}
+                                />
+                                {!isAdmin && apiCalls.length > 1 && (
+                                    <button
+                                        className={styles.apiCallRemove}
+                                        onClick={() => handleRemoveApiCall(index)}
+                                        title="Remove"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 )}
 
