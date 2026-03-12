@@ -17,8 +17,9 @@ const RightSidebar = () => {
 
     const [localLabel, setLocalLabel] = useState(currentEdge?.label || '')
     const [shortcodeUrlsOpen, setShortcodeUrlsOpen] = useState(false)
-
     const [pendingInputs, setPendingInputs] = useState([])
+    const [passOnOpen, setPassOnOpen] = useState(false)
+    const [pendingPassOn, setPendingPassOn] = useState(null)
 
     const isAdmin = user?.role === 'admin'
 
@@ -29,6 +30,8 @@ const RightSidebar = () => {
     useEffect(() => {
         setShortcodeUrlsOpen(false)
         setPendingInputs([])
+        setPassOnOpen(false)
+        setPendingPassOn(null)
     }, [selectedNode])
 
     const getEmptyMessage = () => {
@@ -44,22 +47,6 @@ const RightSidebar = () => {
 
     // ── Edge editing ──
     if (currentEdge) {
-        const commitLabel = () => {
-            if (isAdmin) return
-
-            if (localLabel && !/^[0-9*#]$/.test(localLabel)) {
-                alert("⚠️ Edge label should be a single digit (0-9), *, or #")
-                setLocalLabel(currentEdge.label || '')
-                return
-            }
-
-            const updated = edges.map(edge =>
-                edge.id === selectedEdge ? { ...edge, label: localLabel } : edge
-            )
-            dispatch(setEdges(updated))
-            dispatch(saveToHistory())
-        }
-
         return (
             <div className={styles.rightSidebar}>
                 <div className={styles.container}>
@@ -125,6 +112,7 @@ const RightSidebar = () => {
             </div>
         )
     }
+
     // ── Node editing ──
     if (!currentNode) {
         return (
@@ -151,7 +139,9 @@ const RightSidebar = () => {
     }
 
     const apiCalls = data.apiCalls || []
+    const passOnValue = data.passOnValue || ''
 
+    // API URL handlers
     const handleAddApiCall = () => {
         const id = Date.now()
         if (data.isAPI) {
@@ -202,8 +192,46 @@ const RightSidebar = () => {
         }
         dispatch(saveToHistory())
     }
+
+    // Pass-on Value handlers
+    const handleAddPassOn = () => {
+        if (!passOnValue) {
+            setPendingPassOn({ id: Date.now(), value: '' })
+            setPassOnOpen(true)
+        }
+    }
+
+    const handlePassOnChange = (value) => {
+        if (passOnValue) {
+            updateField('passOnValue', value)
+        } else if (pendingPassOn) {
+            setPendingPassOn({ ...pendingPassOn, value })
+        }
+    }
+
+    const handlePassOnBlur = () => {
+        if (pendingPassOn) {
+            if (pendingPassOn.value.trim() !== '') {
+                updateField('passOnValue', pendingPassOn.value.trim())
+                dispatch(saveToHistory())
+            }
+            setPendingPassOn(null)
+            if (!pendingPassOn.value.trim()) {
+                setPassOnOpen(false)
+            }
+        } else if (passOnValue) {
+            dispatch(saveToHistory())
+        }
+    }
+
+    const handleRemovePassOn = () => {
+        updateField('passOnValue', '')
+        dispatch(saveToHistory())
+        setPassOnOpen(false)
+        setPendingPassOn(null)
+    }
+
     const totalVisible = apiCalls.length + pendingInputs.length
-    const filledCalls = apiCalls
 
     return (
         <div className={styles.rightSidebar}>
@@ -275,14 +303,104 @@ const RightSidebar = () => {
                     />
                 </div>
 
+                {/* Pass-on Value Section */}
+                <div className={styles.apiUrlCard}>
+                    <div
+                        className={styles.apiUrlCardHeader}
+                        style={{ cursor: 'default' }}
+                    >
+                        <div className={styles.apiUrlCardTitle}>
+                            <span className={styles.apiUrlDot} />
+                            <span className={styles.apiUrlLabel}>
+                                Pass-on Value
+                                <span className={styles.optional}> (Optional)</span>
+                            </span>
+                        </div>
+                        {!isAdmin && !passOnValue && !pendingPassOn && (
+                            <button
+                                className={styles.labelAddBtn}
+                                onClick={handleAddPassOn}
+                                title="Add Pass-on Value"
+                            >
+                                <Plus size={12} />
+                            </button>
+                        )}
+                    </div>
+                    <div
+                        className={styles.apiUrlCardBody}
+                        style={{
+                            maxHeight: passOnValue || pendingPassOn ? '500px' : '0px',
+                            overflow: 'hidden',
+                            transition: 'max-height 0.3s ease',
+                        }}
+                    >
+                        {/* Admin view */}
+                        {isAdmin && passOnValue && (
+                            <div className={styles.apiCallRow}>
+                                <input
+                                    className={styles.input}
+                                    value={passOnValue}
+                                    readOnly
+                                    disabled
+                                />
+                            </div>
+                        )}
+
+                        {/* User view - existing value */}
+                        {!isAdmin && passOnValue && (
+                            <div className={styles.apiCallRow}>
+                                <input
+                                    className={styles.input}
+                                    value={passOnValue}
+                                    onChange={(e) => handlePassOnChange(e.target.value)}
+                                    onBlur={handlePassOnBlur}
+                                    placeholder="Enter pass-on value"
+                                />
+                                <button
+                                    className={styles.apiCallRemove}
+                                    onClick={handleRemovePassOn}
+                                    title="Remove"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        )}
+
+                        {/* User view - pending input */}
+                        {!isAdmin && pendingPassOn && (
+                            <div className={styles.apiCallRow}>
+                                <input
+                                    className={styles.input}
+                                    value={pendingPassOn.value}
+                                    onChange={(e) => handlePassOnChange(e.target.value)}
+                                    onBlur={handlePassOnBlur}
+                                    placeholder="Enter pass-on value"
+                                    autoFocus
+                                />
+                                <button
+                                    className={styles.apiCallRemove}
+                                    onClick={() => {
+                                        setPendingPassOn(null)
+                                        setPassOnOpen(false)
+                                    }}
+                                    title="Remove"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* API URLs Section */}
                 {(data.isShortCode || data.isAPI) && (
                     <div className={styles.apiUrlCard}>
                         <div
                             className={styles.apiUrlCardHeader}
-                            onClick={isAdmin && filledCalls.length > 1
+                            onClick={isAdmin && apiCalls.length > 1
                                 ? () => setShortcodeUrlsOpen(prev => !prev)
                                 : undefined}
-                            style={{ cursor: isAdmin && filledCalls.length > 1 ? 'pointer' : 'default' }}
+                            style={{ cursor: isAdmin && apiCalls.length > 1 ? 'pointer' : 'default' }}
                         >
                             <div className={styles.apiUrlCardTitle}>
                                 <span className={styles.apiUrlDot} />
@@ -300,7 +418,7 @@ const RightSidebar = () => {
                                     <Plus size={12} />
                                 </button>
                             )}
-                            {isAdmin && filledCalls.length > 1 && (
+                            {isAdmin && apiCalls.length > 1 && (
                                 <span className={styles.labelToggleBtn}>
                                     {shortcodeUrlsOpen
                                         ? <ChevronUp size={14} />
@@ -313,15 +431,15 @@ const RightSidebar = () => {
                             style={{
                                 maxHeight: (() => {
                                     if (!isAdmin) return totalVisible > 0 ? '500px' : '0px'
-                                    if (filledCalls.length === 0) return '0px'
-                                    if (filledCalls.length === 1) return '500px'
+                                    if (apiCalls.length === 0) return '0px'
+                                    if (apiCalls.length === 1) return '500px'
                                     return shortcodeUrlsOpen ? '500px' : '0px'
                                 })(),
                                 overflow: 'hidden',
                                 transition: 'max-height 0.3s ease',
                             }}
                         >
-                            {isAdmin && filledCalls.map((url, index) => (
+                            {isAdmin && apiCalls.map((url, index) => (
                                 <div key={index} className={styles.apiCallRow}>
                                     <input
                                         className={styles.input}

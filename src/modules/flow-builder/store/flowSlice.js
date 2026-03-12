@@ -82,6 +82,7 @@ const flowSlice = createSlice({
                                 isShortCode,
                                 ...(isShortCode && { apiCalls: [] }),
                                 ...(isAPI && { apiCalls: [DEFAULT_API_URL] }),
+                                passOnValue: "",
                             },
                             style: {
                                 background: nodeData.bgColor,
